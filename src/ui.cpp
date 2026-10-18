@@ -608,21 +608,35 @@ void Desktop::Impl::drawDebugger() {
         ImGui::SetNextItemWidth(80); if (hexInput("Address",assemblyAddress)) { assemblyAddress&=65535; followPc=false; } ImGui::SameLine(); ImGui::Checkbox("Follow PC",&followPc);
         if (followPc) assemblyAddress=Z80_PC(m.cpu());
         ImGui::BeginChild("Disassembly",ImVec2(0,245),ImGuiChildFlags_Borders);
-        unsigned address=assemblyAddress;
-        for (unsigned n=0;n<14;++n) {
-            const auto a=static_cast<std::uint16_t>(address); const auto instruction=disassemble(m,a);
-            char line[160],bytes[30]={};
-            for (unsigned i=0;i<std::min(4u,instruction.length);++i) std::snprintf(bytes+i*3,sizeof(bytes)-i*3,"%02X ",m.read(static_cast<std::uint16_t>(a+i)));
-            std::snprintf(line,sizeof(line),"%c %04X  %-12s  %s",m.breakpoints().count(a)?'*':' ',a,bytes,instruction.text.c_str());
-            if (ImGui::Selectable(line,a==Z80_PC(m.cpu()))) {
-                if (m.breakpoints().erase(a)) {
-                    for (unsigned i=0;i<bpAddresses.size();++i) if (bpAddresses[i]==a) bpEnabled[i]=false;
-                } else {
-                    m.breakpoints().insert(a);
-                    for (unsigned i=0;i<bpAddresses.size();++i) if (!bpEnabled[i]) { bpAddresses[i]=a; bpEnabled[i]=true; break; }
+        if (ImGui::BeginTable("Instructions",3,ImGuiTableFlags_SizingFixedFit)) {
+            // Spaces in the proportional UI font cannot align byte strings.
+            // Reserve fixed columns for the address and up to four bytes.
+            float hexWidth=0;
+            for (const char* digit="0123456789ABCDEF";*digit;++digit) hexWidth=std::max(hexWidth,ImGui::CalcTextSize(digit,digit+1).x);
+            const float space=ImGui::CalcTextSize(" ").x;
+            ImGui::TableSetupColumn("Address",ImGuiTableColumnFlags_WidthFixed,4*hexWidth+ImGui::CalcTextSize("* ").x);
+            ImGui::TableSetupColumn("Bytes",ImGuiTableColumnFlags_WidthFixed,8*hexWidth+3*space);
+            ImGui::TableSetupColumn("Instruction",ImGuiTableColumnFlags_WidthStretch);
+            unsigned address=assemblyAddress;
+            for (unsigned n=0;n<14;++n) {
+                const auto a=static_cast<std::uint16_t>(address); const auto instruction=disassemble(m,a);
+                char label[16],bytes[30]={};
+                for (unsigned i=0;i<std::min(4u,instruction.length);++i) std::snprintf(bytes+i*3,sizeof(bytes)-i*3,"%02X ",m.read(static_cast<std::uint16_t>(a+i)));
+                std::snprintf(label,sizeof(label),"%c %04X",m.breakpoints().count(a)?'*':' ',a);
+                ImGui::TableNextRow(); ImGui::TableNextColumn();
+                if (ImGui::Selectable(label,a==Z80_PC(m.cpu()),ImGuiSelectableFlags_SpanAllColumns)) {
+                    if (m.breakpoints().erase(a)) {
+                        for (unsigned i=0;i<bpAddresses.size();++i) if (bpAddresses[i]==a) bpEnabled[i]=false;
+                    } else {
+                        m.breakpoints().insert(a);
+                        for (unsigned i=0;i<bpAddresses.size();++i) if (!bpEnabled[i]) { bpAddresses[i]=a; bpEnabled[i]=true; break; }
+                    }
                 }
+                ImGui::TableNextColumn(); ImGui::TextUnformatted(bytes);
+                ImGui::TableNextColumn(); ImGui::TextUnformatted(instruction.text.c_str());
+                address=(address+instruction.length)&65535;
             }
-            address=(address+instruction.length)&65535;
+            ImGui::EndTable();
         }
         ImGui::EndChild();
         ImGui::TableNextColumn();
