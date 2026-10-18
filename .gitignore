@@ -1,7 +1,2 @@
 /build*/
-/out/
-/ondra.ini
-*.osn
-*.ppm
-*.wav
-*.csw
+ondra.ini
