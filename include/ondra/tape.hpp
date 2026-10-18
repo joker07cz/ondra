@@ -20,6 +20,8 @@ public:
     void recordLevel(bool level);
     void saveRecording(const std::string& path) const;
     bool recording() const { return recording_; }
+    void stopRecording() { recording_ = false; }
+    double progress() const { return pulses_.empty() ? 0.0 : static_cast<double>(position_) / pulses_.size(); }
     std::size_t pulseCount() const { return pulses_.size(); }
 private:
     void loadCsw(const std::vector<std::uint8_t>& data);

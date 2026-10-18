@@ -6,6 +6,12 @@ Nativní emulátor počítače **Ondra SPO 186**, převedený z
 SDL2. Java ani JVM nejsou potřeba. Vlastní kód používá výhradně C++11,
 procesorové jádro je v C99.
 
+![Hlavní okno emulátoru](docs/desktop.png)
+
+Grafické rozhraní navazuje na původní JOndru: menu, lišta s původními ikonami,
+LED, ovládání pásky, dialog nastavení a debugger. Používá staticky připojené
+Dear ImGui nad SDL2; font i obrázky jsou součástí programu.
+
 ## Sestavení v Linuxu
 
 Na Debianu/Ubuntu:
@@ -19,8 +25,8 @@ ctest --test-dir build --output-on-failure
 ```
 
 CMake musí být alespoň 3.16. Na jiných distribucích stačí odpovídající balíčky
-C/C++ překladače, CMake a vývojové SDL2. Procesor Z80 a jeho jediná závislost
-Zeta jsou součástí zdrojových kódů v `third_party`; sestavení s nainstalovaným
+C/C++ překladače, CMake a vývojové SDL2 alespoň 2.0.18. Procesor Z80, Zeta
+a Dear ImGui jsou součástí zdrojových kódů v `third_party`; sestavení s nainstalovaným
 SDL2 nepotřebuje připojení k síti ani Git submoduly.
 
 Alternativně lze SDL2 stáhnout a sestavit z připnuté, kontrolním součtem ověřené
@@ -132,6 +138,24 @@ nespouští zavaděč: načítání/nahrávání a motor řídí program v emulo
 Přepínač `--record vystup.csw` zaznamenává páskový výstup a uloží jej při ukončení.
 Úplný přehled parametrů vypíše `--help`.
 
+V menu **File** lze vybírat pásky, načítat a ukládat OSN snapshoty i bloky
+paměti (BIN s hlavičkou nebo surová data). Uložení do existujícího souboru
+vyžaduje potvrzení. **Tools → Settings** nabízí ROM, zvuk, Melodik, turbo,
+OndraSD, zvětšení, celou obrazovku, CRT řádkování a Scale2x. Volby se ukládají
+do `ondra.ini` vedle programu; jiný soubor lze určit `--config soubor.ini`.
+`--no-config` vypne načítání i ukládání nastavení. Výslovné parametry příkazové
+řádky mají přednost před uloženými volbami.
+
+**Tools → Debugger** otevře disassembler, registry, zásobník, breakpointy
+a editor paměti. Registry a bajty se upravují při pauze a potvrzují Enterem;
+adresy a hodnoty jsou šestnáctkové. Breakpoint lze přepnout také kliknutím
+na instrukci. F3 krokuje instrukci, F7 přejde přes CALL/RST s omezením délky
+vykonávání. **Tools → Keyboard** zobrazí obrázek klávesnice a tlačítka kláves.
+Při psaní v souborovém dialogu, nastavení a debuggeru se klávesy neposílají
+do emulovaného počítače.
+
+![Grafický debugger](docs/debugger.png)
+
 Ve ViLi ROM načte první program z pásky prázdný řádek potvrzený klávesou Enter.
 V Ondra+ zvolte v úvodním menu „Zavést z pásky“. Generátor TAP používá stabilní
 bifázový signál 2 500 bit/s, ověřený skutečným dekodérem v těchto ROM;
@@ -139,23 +163,24 @@ nepřebírá závislost původního generátoru na zaokrouhlování Java časova
 
 | Klávesa PC | Funkce |
 |---|---|
-| F1 | Nápověda do konzole |
+| F1 | Informace a nápověda k ovládání |
 | F2 | Pauza / pokračování |
-| F3 | Jedna instrukce a výpis registrů |
+| F3 | Jedna instrukce |
 | F4 | NMI |
 | F5 / Shift+F5 | Reset se zachováním RAM / studený reset |
 | F6 | Přepnutí 2/4 MHz |
-| F8 / F9 | Uložit / načíst `ondra.osn` |
+| F7 | Krok přes CALL/RST |
+| F8 / F9 | Dialog uložení / načtení snapshotu |
 | F10 | Ukončit |
 | F11 | Celá obrazovka |
-| F12 | Uložit `screenshot.ppm` |
+| F12 | Dialog uložení obrazu do PPM |
 | Home | Převinout pásku |
 
 Písmena a šipky používají mapování původní JOndry: `Shift` = Shift,
 `Alt` = Symbols, `Ctrl` = Ctrl, `Tab` = Numbers, `=` = CS. Čísla se zadávají
 kombinací Numbers s příslušnou klávesou Ondry. Joystick používá numerickou
 klávesnici 8/2/4/6 a 0 jako tlačítko. Při ztrátě fokusu se stisky uvolní.
-Zelená/žlutá LED a stav motoru pásky jsou vidět v titulku okna.
+Zelená/žlutá LED a stav motoru pásky jsou vidět ve spodní liště.
 
 ## Testování a terminálový debugger
 
@@ -173,9 +198,13 @@ ctest --test-dir build-headless --output-on-failure
 Headless režim běží bez čekání na skutečný čas. Vypíše registry, počet CPU
 T-stavů, rozlišení, počet svítících bodů a FNV-1a hash obrazu. `--check-boot`
 ověřuje zapnuté video a neprázdný obraz; samotné CPU a mapování ověřuje test
-`core`, který se skládá z deseti skupin a více než 4 000 kontrol. Ověřuje i
+`core`, který se skládá z jedenácti skupin a více než 4 000 kontrol. Ověřuje i
 skutečné načtení syntetického TAP programu pomocí zavaděče v ROM. Samostatné
-testy spouštějí každou ROM. SDL smoke test používá ovladače `dummy`.
+testy spouštějí každou ROM. Grafické testy používají ovladače `dummy` a skutečné
+události myši a klávesnice: pauza, nastavení, krokování, editace registrů
+a breakpointů, uložení/načtení snapshotu s českým názvem a zotavení po chybě.
+Kontrolují také potvrzení přepsání souboru, BIN dialogy a přednost parametrů
+před uloženými nastaveními.
 
 Příkazy debuggeru (adresy jsou desetinné nebo s prefixem `0x`/`$`):
 
@@ -226,17 +255,18 @@ podle původní JOndry; nejde o nový model sběrnice po jednotlivých T-stavech
 PSG je samostatná implementace registrů, děličů a šumového LFSR; zvuk zatím
 nebyl porovnán měřením s fyzickým Melodikem.
 
-Swingové dialogy jsou nahrazeny parametry, přetažením souborů a klávesovými
-zkratkami. Terminálový debugger poskytuje krokování, breakpointy a editaci
-paměti. Grafický disassembler, timeline se zpětným krokováním, obrázková
-klávesnice a efekty CRT/ScaleNx z Java UI zatím přeneseny nejsou.
+Grafické rozhraní zachovává rozložení a hlavní ovládací prvky Java verze;
+dialogy jsou nově implementované v Dear ImGui. Dostupný je také terminálový
+debugger. Timeline a zpětné krokování z původní Java verze zatím implementované
+nejsou; z rodiny ScaleNx je dostupné Scale2x.
 
 ## Uspořádání a licence
 
 `include/ondra` a `src` obsahují přenositelné jádro, souborové formáty a obě
 rozhraní. `tests` ověřuje hardware i formáty. `assets` obsahuje nezměněné ROM
-a vzorky z JOndry; CMake je vloží do programu. `third_party` obsahuje nezměněné
-Z80 a Zeta, takže lze jádro sestavit i offline.
+a vzorky z JOndry, ikony a font; CMake je vloží do programu. `third_party`
+obsahuje nezměněné Z80, Zeta a Dear ImGui, takže lze se systémovým SDL2 sestavit
+celý projekt i offline.
 
 Projekt navazuje na GPLv3 JOndru a je vydán pod GPL-3.0-or-later, viz [LICENSE](LICENSE).
 Původ a licence převzatých částí jsou uvedeny v [THIRD_PARTY.md](THIRD_PARTY.md).

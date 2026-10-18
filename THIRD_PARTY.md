@@ -9,6 +9,9 @@
   původní přispěvatele.
 - Převzatá data beze změn: `src/roms/*.rom` → `assets/roms/`,
   `src/sound/*.sample` → `assets/sound/`.
+- Původní PNG ikony a obrázek klávesnice z `src/icons/` jsou v `assets/ui/`
+  bezeztrátově převedené do RGBA (šířka a výška LE32, poté pixely RGBA).
+  Jsou vložené do EXE, takže nevyžadují další knihovnu pro dekódování PNG.
 - Ondra+ ROM má navíc licenci MIT, copyright © 2023 72ka; původní licenční
   text je zachován v `assets/roms/LICENSE-PLUS`.
 - Z Java implementace jsou odvozeny mapování a časování počítače, adresování
@@ -46,3 +49,21 @@
   `10f1194f8d2e4a73ca1c7c553b3189d0b68ab9ef3544e8d2a268e4429456b373`.
 - Při redistribuci binárních knihoven zachovejte jejich licenční texty
   a požadavky jednotlivých knihoven. GPL/LGPL zdrojové části jsou přiložené.
+
+## Dear ImGui
+
+- Zdroj: https://github.com/ocornut/imgui
+- Verze: `v1.91.9b`, revize `f5befd2d29e66809cd1110a152e375a7f1981f06`.
+- Copyright © 2014–2025 Omar Cornut a přispěvatelé.
+- Licence: MIT, viz `third_party/imgui/LICENSE.txt`.
+- Nezměněné jádro a backendy SDL2 / SDLRenderer2 jsou v `third_party/imgui/`.
+  CMake je sestavuje staticky; nevyžadují OpenGL ani další DLL.
+- Zdrojový kód obsahuje také výchozí ProggyClean font, copyright © 2004–2005
+  Tristan Grimmer, se stejnou licencí MIT. Rozhraní používá Roboto níže.
+
+## Roboto Medium
+
+- Zdroj: `misc/fonts/Roboto-Medium.ttf` v uvedené revizi Dear ImGui.
+- Copyright 2011 Google Inc. All Rights Reserved.
+- Licence: Apache-2.0, viz `assets/ui/LICENSE-Roboto` a `NOTICE-Roboto`.
+- Font je nezměněný a vložený do EXE; používá se i pro české názvy souborů.

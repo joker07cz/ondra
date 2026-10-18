@@ -47,6 +47,15 @@ void Machine::selectRom(const std::string& name) {
     else throw std::runtime_error("Unknown ROM: " + name);
     romName_ = name; romType_ = type; installRom(type); reset();
 }
+std::string Machine::romName() const {
+    switch (romType_) {
+    case Rom::Basic: return "basic";
+    case Rom::Tesla: return "tesla";
+    case Rom::Vili: return romName_ == "vili25" ? "vili25" : "vili27";
+    case Rom::Plus: return "plus";
+    default: return "custom";
+    }
+}
 void Machine::customRom(const std::string& a, const std::string& b) {
     const auto first = readFile(a, 8192), second = readFile(b, 8192);
     for (const auto* data : {&first, &second})
@@ -114,8 +123,9 @@ unsigned Machine::step() {
         const unsigned n = static_cast<unsigned>(z80_run(&cpu_, 1));
         if (!n) throw std::runtime_error("Z80 core made no progress");
         cycles_ += n; consumed += n; tape_.advance(n, multiplier_);
-        // Complete prefixes as part of a debugger instruction step.
-    } while (cpu_.resume == Z80_RESUME_XY || cpu_.resume == Z80_RESUME_IM0_XY);
+        // Complete prefixes as one debugger step. Bound malformed streams of
+        // DD/FD prefixes so that the desktop stays responsive.
+    } while ((cpu_.resume == Z80_RESUME_XY || cpu_.resume == Z80_RESUME_IM0_XY) && consumed < FrameCycles);
     return consumed;
 }
 void Machine::jump(std::uint16_t address) {

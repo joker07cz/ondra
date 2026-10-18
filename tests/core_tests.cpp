@@ -2,6 +2,7 @@
 #include <ondra/machine.hpp>
 #include <ondra/files.hpp>
 #include <ondra/resources.hpp>
+#include <ondra/disassembler.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -86,6 +87,32 @@ void timing() {
     m.reset(); m.setTurbo(false); allRam(m); m.breakpoints().insert(4);
     CHECK(!m.runFrame()); CHECK(Z80_PC(m.cpu()) == 4);
     m.step(); CHECK(m.runFrame()); CHECK(m.cycles() == 39936);
+}
+void disassembler() {
+    ondra::Machine m; allRam(m);
+    auto decode=[&](std::initializer_list<std::uint8_t> bytes,const char* expected,unsigned size) {
+        std::copy(bytes.begin(),bytes.end(),m.ram().begin()+0x4000);
+        const auto instruction=ondra::disassemble(m,0x4000);
+        CHECK(instruction.text==expected); CHECK(instruction.length==size);
+    };
+    decode({0xdd,0x21,0x34,0x12},"LD IX,1234h",4);
+    decode({0xfd,0x36,0xfe,0x42},"LD (IY-02h),42h",4);
+    decode({0xdd,0x66,0x80},"LD H,(IX-80h)",3);
+    decode({0xfd,0x75,0x01},"LD (IY+01h),L",3);
+    decode({0xdd,0xcb,0xff,0x00},"RLC (IX-01h),B",4);
+    decode({0xfd,0xcb,0x01,0x7e},"BIT 7,(IY+01h)",4);
+    decode({0xed,0x43,0,0x80},"LD (8000h),BC",4);
+    decode({0xdd,0xed,0x6a},"ADC HL,HL",3);
+    decode({0xdd,0xeb},"EX DE,HL",2);
+    decode({0xdd,0xfd,0xe5},"PUSH IY",3);
+    decode({0xed,0xb0},"LDIR",2);
+    decode({0xcd,0,0x80},"CALL 8000h",3);
+    m.ram()[65535]=0x18; m.ram()[0]=0xfe;
+    CHECK(ondra::disassemble(m,65535).text=="JR FFFFh");
+    m.ram().fill(0xdd); m.jump(0);
+    CHECK(ondra::disassemble(m,0).length==16);
+    const auto cycles=m.step(); CHECK(cycles>=39936 && cycles<40000);
+    CHECK(Z80_PC(m.cpu())!=0); // No infinite loop in debugger step.
 }
 void binaries() {
     ondra::Machine m; allRam(m);
@@ -250,10 +277,10 @@ void sdcard() {
 }
 int main() {
     const std::pair<const char*, void(*)()> tests[] = {{"memory mapping",mapping},{"video",video},{"Z80/interrupts",cpuAndInterrupts},
-        {"frame timing/breakpoints",timing},{"BIN files",binaries},{"OSN snapshots",snapshots},{"tape formats",tapes},
+        {"frame timing/breakpoints",timing},{"Z80 disassembler/prefix limits",disassembler},{"BIN files",binaries},{"OSN snapshots",snapshots},{"tape formats",tapes},
         {"ROM TAP loader",romTapeLoader},{"speaker/PSG",audio},{"OndraSD UART",sdcard}};
     try {
         for (const auto& test : tests) { test.second(); std::cout << "PASS " << test.first << '\n'; }
-        std::cout << "10 test groups, " << checks << " checks passed\n"; return 0;
+        std::cout << sizeof(tests)/sizeof(tests[0]) << " test groups, " << checks << " checks passed\n"; return 0;
     } catch (const std::exception& e) { std::cerr << "FAIL " << e.what() << '\n'; return 1; }
 }

@@ -107,7 +107,7 @@ bool inside(const std::string& path, const std::string& root) {
 #endif
     return a == b || (a.size() > b.size() && a.compare(0, b.size(), b) == 0 && (b == "/" || a[b.size()] == '/'));
 }
-std::vector<FileEntry> directory(const std::string& path) {
+std::vector<FileEntry> directory(const std::string& path, bool showHidden) {
     std::vector<FileEntry> entries;
 #ifdef _WIN32
     WIN32_FIND_DATAW fd;
@@ -115,7 +115,7 @@ std::vector<FileEntry> directory(const std::string& path) {
     if (h == INVALID_HANDLE_VALUE) return entries;
     do {
         std::string name = utf8(fd.cFileName);
-        if (name.empty() || name[0] == '.') continue;
+        if (name.empty() || name == "." || name == ".." || (!showHidden && name[0] == '.')) continue;
         FileEntry e = {name, canonical(path + "/" + name), (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0,
             (static_cast<std::uint64_t>(fd.nFileSizeHigh) << 32) | fd.nFileSizeLow};
         entries.push_back(e);
@@ -126,7 +126,7 @@ std::vector<FileEntry> directory(const std::string& path) {
     if (!dir) return entries;
     while (dirent* de = readdir(dir)) {
         std::string name(de->d_name);
-        if (name.empty() || name[0] == '.') continue;
+        if (name.empty() || name == "." || name == ".." || (!showHidden && name[0] == '.')) continue;
         const std::string p = path + "/" + name;
         struct stat st;
         if (stat(p.c_str(), &st) || (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))) continue;

@@ -54,6 +54,7 @@ public:
     std::uint8_t portA0() const { return a0_; }
     std::uint8_t portA3() const { return a3_; }
     bool videoEnabled() const { return (a3_ & 1) != 0; }
+    std::string romName() const;
 private:
     static zuint8 cpuRead(void*, zuint16);
     static void cpuWrite(void*, zuint16, zuint8);

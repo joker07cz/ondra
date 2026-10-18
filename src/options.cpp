@@ -40,6 +40,7 @@ Options parseOptions(int argc, char** argv) {
     Options o;
     for (int n = 1; n < argc; ++n) {
         const std::string arg = argv[n];
+        o.explicitOptions.insert(arg);
         auto value = [&]() -> std::string { if (n + 1 >= argc) throw std::runtime_error("Missing value for " + arg); return argv[++n]; };
         if (arg == "--rom") o.rom = value();
         else if (arg == "--rom-a") o.romA = value();
@@ -55,6 +56,9 @@ Options parseOptions(int argc, char** argv) {
         else if (arg == "--save-snapshot") o.saveSnapshot = value();
         else if (arg == "--screenshot") o.screenshot = value();
         else if (arg == "--sd") o.sd = value();
+        else if (arg == "--config") o.config = value();
+        else if (arg == "--no-config") o.noConfig = true;
+        else if (arg == "--ui-screenshot") o.uiScreenshot = value();
         else if (arg == "--frames") o.frames = number(value(), 10000000);
         else if (arg == "--scale") { o.scale = number(value(), 8); if (!o.scale) throw std::runtime_error("Scale must be 1..8"); }
         else if (arg == "--turbo") o.turbo = true;
@@ -113,13 +117,15 @@ void printHelp() {
         "  --snapshot FILE.osn        load JOndra OSN v1/v2\n"
         "  --save-snapshot FILE.osn   save OSN v2 on exit\n"
         "  --screenshot FILE.ppm      save the last framebuffer\n"
+        "  --ui-screenshot FILE.bmp   capture the desktop UI on exit (GUI)\n"
+        "  --config FILE --no-config  settings file / ignore saved UI settings\n"
         "  --turbo --melodik --mute --scale 1..8\n"
         "  --frames N                 exit after N frames (headless default: 150)\n"
         "  --check-boot               require enabled video and visible pixels\n"
         "  --debug                    terminal debugger (ondra-headless only)\n"
-        "Keys: F1 help, F2 pause, F3 step, F4 NMI, F5 reset (Shift: cold),\n"
-        "      F6 turbo, F8 save ondra.osn, F9 load ondra.osn, F10 quit,\n"
-        "      F11 fullscreen, F12 screenshot.ppm, Home rewind tape.\n"
+        "Keys: F1 about/help, F2 pause, F3 step, F4 NMI, F5 reset (Shift: cold),\n"
+        "      F6 turbo, F7 step over, F8 save snapshot, F9 open snapshot,\n"
+        "      F10 quit, F11 fullscreen, F12 save screenshot, Home rewind tape.\n"
         "Ondra modifiers: Shift, Alt=Symbols, Ctrl, Tab=Numbers, Equals=CS.\n";
 }
 }

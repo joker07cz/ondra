@@ -13,7 +13,7 @@ void putDword(std::vector<std::uint8_t>& data, std::uint32_t value);
 std::string extension(const std::string& path);
 struct FileEntry { std::string name, path; bool directory; std::uint64_t size; };
 std::string canonical(const std::string& path);
-std::vector<FileEntry> directory(const std::string& path);
+std::vector<FileEntry> directory(const std::string& path, bool showHidden = false);
 bool inside(const std::string& path, const std::string& root);
 bool isDirectory(const std::string& path);
 #ifdef _WIN32
