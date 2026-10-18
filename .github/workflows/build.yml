@@ -12,7 +12,16 @@ jobs:
       - run: cmake --build build --parallel 4
       - run: ctest --test-dir build --output-on-failure
   windows:
+    name: Windows (${{ matrix.linkage }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - linkage: dynamic
+            standalone: "OFF"
+          - linkage: static
+            standalone: "ON"
     defaults:
       run:
         shell: msys2 {0}
@@ -27,6 +36,34 @@ jobs:
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
             mingw-w64-ucrt-x86_64-SDL2
-      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DONDRA_STATIC=${{ matrix.standalone }}
       - run: cmake --build build --parallel 4
       - run: ctest --test-dir build --output-on-failure
+      - name: Run standalone executables without MSYS2 DLLs
+        if: matrix.linkage == 'static'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path isolated | Out-Null
+          Copy-Item build/ondra.exe,build/ondra-headless.exe isolated/
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          $env:SDL_VIDEODRIVER = "dummy"
+          $env:SDL_AUDIODRIVER = "dummy"
+          Push-Location isolated
+          & ./ondra-headless.exe --rom plus --frames 150 --check-boot
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./ondra.exe --frames 5
+          exit $LASTEXITCODE
+      - name: Package standalone executables and licenses
+        if: matrix.linkage == 'static'
+        run: |
+          mkdir -p out/ondra-windows-x64-static/licenses/{z80,zeta,sdl2}
+          cp build/ondra.exe build/ondra-headless.exe LICENSE THIRD_PARTY.md README.md assets/roms/LICENSE-PLUS out/ondra-windows-x64-static/
+          cp third_party/z80/COPYING* out/ondra-windows-x64-static/licenses/z80/
+          cp third_party/zeta/COPYING* out/ondra-windows-x64-static/licenses/zeta/
+          cp build/_deps/sdl2-src/LICENSE.txt out/ondra-windows-x64-static/licenses/sdl2/
+      - uses: actions/upload-artifact@v4
+        if: matrix.linkage == 'static'
+        with:
+          name: ondra-windows-x64-static
+          path: out/ondra-windows-x64-static/
+          if-no-files-found: error

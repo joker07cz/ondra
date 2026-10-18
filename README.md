@@ -53,18 +53,51 @@ Použijte CMake a GCC ze stejného prostředí UCRT64. Pro MINGW64 použijte vš
 balíčky s prefixem `mingw-w64-x86_64-` v terminálu MINGW64. Nekombinujte je
 s balíčky UCRT64 nebo s MSYS překladačem z `/usr/bin`.
 
-Spouštění z terminálu MSYS2 zajistí dostupnost runtime DLL. Při kopírování
+Ve výchozí dynamické variantě zajistí terminál MSYS2 dostupnost runtime DLL. Při kopírování
 programu mimo MSYS2 přibalte potřebné knihovny z `ucrt64/bin` (SDL2, libstdc++,
 libgcc, případně libwinpthread); jejich skutečný seznam ukáže
 `objdump -p build/ondra.exe`. ROM a zvukové vzorky jsou vloženy přímo do programu.
-Načítání souborů drag-and-drop nevyžaduje žádné soubory vedle EXE.
+Není potřeba samostatný adresář s ROM nebo zvukovými daty.
+
+### Samostatné EXE bez přibalovaných DLL
+
+Pro Windows lze SDL2, libstdc++, libgcc i libwinpthread připojit staticky.
+V terminálu **MSYS2 UCRT64** použijte novou sestavovací složku:
+
+```sh
+pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake \
+  mingw-w64-ucrt-x86_64-ninja
+cmake -S . -B build-static -G Ninja -DCMAKE_BUILD_TYPE=Release -DONDRA_STATIC=ON
+cmake --build build-static --parallel 4
+ctest --test-dir build-static --output-on-failure
+./build-static/ondra.exe
+```
+
+Na jiný počítač s Windows 10/11 pak stačí přenést **`ondra.exe`**. Pro běh
+nepotřebuje instalaci SDL2, MSYS2 ani DLL z adresáře `ucrt64/bin`. ROM i zvukové
+vzorky jsou již součástí EXE. Zůstávají závislosti na systémových DLL Windows,
+které jsou součástí operačního systému. Při distribuci přiložte také licenční
+texty; CI je přibaluje do archivu.
+
+`ONDRA_STATIC=ON` automaticky stáhne a sestaví připnuté SDL2, i když je v MSYS2
+nainstalovaná sdílená verze. Balíček SDL2 tedy pro tuto variantu není potřeba;
+první konfigurace vyžaduje internet. Volba podporuje MinGW GCC v UCRT64,
+MINGW64 a cross překladač z Linuxu. Sestavení kontroluje importy výsledných
+EXE pomocí `objdump` a skončí chybou, pokud najde jinou než systémovou DLL.
+Pouhé `-static-libstdc++` by nestačilo, protože ponechává závislost na
+libwinpthread.
+
+V [GitHub Actions](https://github.com/omikron88/ondra/actions/workflows/build.yml)
+se sestavují obě varianty. Po úspěšném běhu je v části **Artifacts** dostupný
+archiv **`ondra-windows-x64-static`** s EXE a licencemi. Statická varianta se
+navíc testuje v samostatném adresáři s PATH obsahujícím pouze systém Windows.
 
 Volitelný cross překlad z Linuxu:
 
 ```sh
 cmake -S . -B build-windows \
   -DCMAKE_TOOLCHAIN_FILE=cmake/mingw64-toolchain.cmake \
-  -DONDRA_FETCH_SDL2=ON -DCMAKE_BUILD_TYPE=Release
+  -DONDRA_STATIC=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build-windows --parallel 4
 ```
 
