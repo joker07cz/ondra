@@ -146,7 +146,7 @@ void SdCard::process(unsigned value, Time t) {
     }
 }
 void SdCard::send(unsigned value, Time t) {
-    const Time start = std::max(std::max(t, lastEnd_ + static_cast<Time>(gapTime())), free_);
+    const Time start = std::max(std::max(t, lastEnd_) + static_cast<Time>(gapTime()), free_);
     Tx b = {start, bitTime(), value & 255}; queue_.push_back(b);
     lastEnd_ = free_ = b.end();
 }
