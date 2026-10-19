@@ -549,6 +549,9 @@ void Desktop::Impl::drawMessages() {
         ImGui::Begin("About Ondra",&about,ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_NoCollapse);
         ImGui::Image(imageId(icons.at("ondra")),ImVec2(48,48)); ImGui::SameLine();
         ImGui::TextUnformatted("Ondra SPO 186\nC++11 port of JOndra");
+        ImGui::Separator();
+        ImGui::Text("Version: %s",ONDRA_VERSION);
+        ImGui::TextUnformatted("Built: " __DATE__ " " __TIME__);
         ImGui::Separator(); ImGui::TextUnformatted("Original emulator: omikron88/jondra\nCPU: redcode/Z80\nDesktop: SDL2 + Dear ImGui");
         ImGui::TextUnformatted("GPL-3.0-or-later; third-party licenses included.");
         ImGui::TextWrapped("Keyboard: Shift, Alt=Symbols, Ctrl, Tab=Numbers, Equals=CS. F11 toggles fullscreen.");
